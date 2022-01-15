@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    command: python3 manage.py runserver 0.0.0.0:8000
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    tty: true
+    stdin_open: true
+    environment: 
+      POSTGRES_NAME: ItemMgr
+      POSTGRES_USER: django
+      POSTGRES_PASSWORD: passwd
+      POSTGRES_HOST: db
+  db:
+    image: postgres
+    restart: always
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment: 
+      - POSTGRES_USER=django
+      - POSTGRES_PASSWORD=passwd
+      - POSTGRES_DB=ItemMgr
+    ports:
+      - "5432:5432"
+volumes:
+ postgres_data:
+

@@ -1,0 +1,1 @@
+const home={template:`<h1>ホーム</h1>`}
