@@ -12,6 +12,11 @@ https://docs.djangoproject.com/en/3.2/ref/settings/
 
 from pathlib import Path
 import os
+import environ
+
+env = environ.Env(
+    DEBUG=(bool, False)
+)
 
 BASE_DIR=Path(__file__).resolve(strict=True).parent.parent
 MEDIA_URL='/Photos/'
@@ -20,19 +25,22 @@ MEDIA_ROOT=os.path.join(BASE_DIR,"Photos")
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
+environ.Env.read_env(os.path.join(BASE_DIR, '/.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@oxx-o(4f=mxha%-tlv97)x9m7x_fw=(@*k=*29q%r7c8*)%-&'
+# SECRET_KEY = 'itemMgr!%wbyh2lqy6w-hhx1g+%9^(@#(k)qhej&nf*0aa0_++qs0+3bg'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
 
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 

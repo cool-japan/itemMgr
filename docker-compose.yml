@@ -11,10 +11,10 @@ services:
     tty: true
     stdin_open: true
     environment: 
-      POSTGRES_NAME: ItemMgr
-      POSTGRES_USER: django
-      POSTGRES_PASSWORD: passwd
-      POSTGRES_HOST: db
+      - POSTGRES_NAME=ItemMgr
+      - POSTGRES_USER=django
+      - POSTGRES_PASSWORD=passwd
+      - POSTGRES_HOST=db
   db:
     image: postgres
     restart: always
@@ -26,6 +26,16 @@ services:
       - POSTGRES_DB=ItemMgr
     ports:
       - "5432:5432"
+  nginx:
+    build:
+      context: ./ui/
+      args:
+        APP_SERVER: ${APP_SERVER}
+    command: []
+    environment:
+      - NGINX_PORT=80
+    ports:
+      - "80:80"
 volumes:
  postgres_data:
 

@@ -34,5 +34,7 @@
   or
 
   (Windows)
-  file:///C:/itemMgr/ui/index.html#/
+  e.g.  file:///C:/itemMgr/ui/index.html#/
+
+  on your favorite browser.
 
