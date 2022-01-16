@@ -11,7 +11,7 @@
 ## Don't forget to run docker service (daemon)
 # sudo service docker start
 
-docker-compose down
+docker compose down
 
 docker stop $(docker ps -q)
 
@@ -20,16 +20,16 @@ docker volume rm itemmgr_postgres_data
 docker image rm itemmgr_web
 docker image rm itemmgr_nginx
 
-docker-compose build web
-docker-compose --env-file ./.env build nginx
+docker compose build web
+docker compose --env-file ./.env build nginx
 
-docker-compose up -d db
-docker-compose up -d web
+docker compose up -d db
+docker compose up -d web
 
 #### data and schema migration for the new database engine (pgsql->sqlite3 etc.)
-docker-compose exec web python3 manage.py migrate --noinput
+docker compose exec web python3 manage.py migrate --noinput
 
-docker-compose down
+docker compose down
 
-# docker-compose up -d
+# docker compose up -d
 
