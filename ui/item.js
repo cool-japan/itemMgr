@@ -1,13 +1,130 @@
 const item={template:`
 <div>
 
-<button type="button"
-class="btn btn-primary m-2 fload-end"
-data-bs-toggle="modal"
-data-bs-target="#exampleModal"
-@click="addClick()">
- 商品追加
-</button>
+<!-- 在庫ダッシュボード -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">在庫状況ダッシュボード</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h2>{{stockStatusSummary.total_items}}</h2>
+                        <p class="mb-0">商品総数</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h2>{{stockStatusSummary.in_stock}}</h2>
+                        <p class="mb-0">在庫あり</p>
+                        <small>{{stockStatusSummary.in_stock_percentage}}%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning">
+                    <div class="card-body text-center">
+                        <h2>{{stockStatusSummary.low_stock}}</h2>
+                        <p class="mb-0">在庫僅少</p>
+                        <small>{{stockStatusSummary.low_stock_percentage}}%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body text-center">
+                        <h2>{{stockStatusSummary.out_of_stock}}</h2>
+                        <p class="mb-0">在庫切れ</p>
+                        <small>{{stockStatusSummary.out_of_stock_percentage}}%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button type="button" class="btn btn-warning" @click="loadLowStockItems">
+                在庫僅少・切れ商品を表示
+            </button>
+            <button type="button" class="btn btn-info ms-2" @click="refreshData">
+                全商品を表示
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">高度な検索</h5>
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">キーワード</span>
+                    <input type="text" class="form-control" v-model="searchQuery" 
+                           placeholder="商品名、説明、会社名で検索">
+                    <button class="btn btn-primary" type="button" @click="performSearch">
+                        <i class="bi bi-search"></i> 検索
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">カテゴリ</span>
+                    <select class="form-select" v-model="searchCategory">
+                        <option value="">すべてのカテゴリ</option>
+                        <option v-for="cat in categories" :value="cat.CategoryId">
+                            {{cat.CategoryName}}
+                        </option>
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">価格範囲</span>
+                    <input type="number" class="form-control" v-model="searchMinPrice" 
+                           placeholder="最小" min="0">
+                    <span class="input-group-text">〜</span>
+                    <input type="number" class="form-control" v-model="searchMaxPrice" 
+                           placeholder="最大" min="0">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">在庫状態</span>
+                    <select class="form-select" v-model="searchStockStatus">
+                        <option value="">すべての状態</option>
+                        <option value="in_stock">在庫あり</option>
+                        <option value="low_stock">在庫僅少</option>
+                        <option value="out_of_stock">在庫切れ</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex justify-content-between">
+            <button class="btn btn-secondary" @click="resetSearch">
+                検索条件をリセット
+            </button>
+            <span v-if="searchPerformed" class="text-muted align-self-center">
+                {{ searchResultCount }}件の検索結果
+            </span>
+        </div>
+    </div>
+</div>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>商品一覧</h3>
+    <button type="button"
+    class="btn btn-primary"
+    data-bs-toggle="modal"
+    data-bs-target="#exampleModal"
+    @click="addClick()">
+     商品追加
+    </button>
+</div>
 
 <table class="table table-striped">
 <thead>
@@ -31,6 +148,9 @@ data-bs-target="#exampleModal"
             価格
         </th>
         <th>
+            在庫
+        </th>
+        <th>
             オプション
         </th>
     </tr>
@@ -46,6 +166,13 @@ data-bs-target="#exampleModal"
             <span v-if="emp.category_name" class="badge bg-info">{{emp.category_name}}</span>
         </td>
         <td>{{emp.Price}}</td>
+        <td>
+            <span :class="getStockStatusClass(emp)">{{emp.stock_status}}</span>
+            <span class="badge bg-secondary">{{emp.StockQuantity}}個</span>
+            <button type="button" class="btn btn-sm btn-outline-success mx-1" @click="showStockModal(emp)">
+                在庫管理
+            </button>
+        </td>
         <td>
             <button type="button"
             class="btn btn-light mr-1"
@@ -131,6 +258,20 @@ data-bs-target="#exampleModal"
                        :class="{'is-invalid': formErrors.Price}" required>
                 <div class="invalid-feedback" v-if="formErrors.Price">{{formErrors.Price}}</div>
             </div>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text">在庫数</span>
+                <input type="number" min="0" class="form-control" v-model="StockQuantity" 
+                       :class="{'is-invalid': formErrors.StockQuantity}" required>
+                <div class="invalid-feedback" v-if="formErrors.StockQuantity">{{formErrors.StockQuantity}}</div>
+            </div>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text">在庫僅少閾値</span>
+                <input type="number" min="1" class="form-control" v-model="LowStockThreshold" 
+                       :class="{'is-invalid': formErrors.LowStockThreshold}" required>
+                <div class="invalid-feedback" v-if="formErrors.LowStockThreshold">{{formErrors.LowStockThreshold}}</div>
+            </div>
 
 
         </div>
@@ -162,6 +303,62 @@ data-bs-target="#exampleModal"
 </div>
 </div>
 
+<!-- 在庫管理モーダル -->
+<div class="modal fade" id="stockModal" tabindex="-1"
+    aria-labelledby="stockModalLabel" aria-hidden="true">
+<div class="modal-dialog modal-md modal-dialog-centered">
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title" id="stockModalLabel">在庫管理: {{currentStockItem.ItemName}}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"
+        aria-label="Close"></button>
+    </div>
+
+    <div class="modal-body">
+        <div class="card mb-3">
+            <div class="card-header">現在の在庫情報</div>
+            <div class="card-body">
+                <p class="card-text">
+                    <strong>在庫状況:</strong> 
+                    <span :class="getStockStatusClass(currentStockItem)">{{currentStockItem.stock_status}}</span>
+                </p>
+                <p class="card-text">
+                    <strong>在庫数:</strong> {{currentStockItem.StockQuantity}}個
+                </p>
+                <p class="card-text">
+                    <strong>在庫僅少閾値:</strong> {{currentStockItem.LowStockThreshold}}個
+                </p>
+            </div>
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header">在庫数変更</div>
+            <div class="card-body">
+                <div class="input-group mb-3">
+                    <span class="input-group-text">変更数</span>
+                    <input type="number" class="form-control" v-model="stockChangeAmount"
+                           :class="{'is-invalid': stockChangeError}">
+                    <div class="invalid-feedback" v-if="stockChangeError">{{stockChangeError}}</div>
+                </div>
+                <div class="alert alert-info">
+                    <small>※ 入荷の場合はプラスの値、出荷の場合はマイナスの値を入力してください。</small>
+                </div>
+                <div class="d-grid gap-2">
+                    <button class="btn btn-success" @click="updateStockQuantity">在庫数を更新</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-danger" v-if="stockUpdateError">
+            {{stockUpdateError}}
+        </div>
+        <div class="alert alert-success" v-if="stockUpdateSuccess">
+            {{stockUpdateSuccess}}
+        </div>
+    </div>
+</div>
+</div>
+</div>
 
 </div>
 
@@ -181,10 +378,32 @@ data(){
         DateOfJoining:"",
         Abstract:"",
         Price:"",
+        StockQuantity: 0,
+        LowStockThreshold: 5,
         PhotoFileName:"anon.png",
         PhotoPath:variables.PHOTO_URL,
         formErrors: {},
-        serverMessage: ""
+        serverMessage: "",
+        // 在庫管理用
+        currentStockItem: {},
+        stockChangeAmount: 0,
+        stockChangeError: "",
+        stockUpdateError: "",
+        stockUpdateSuccess: "",
+        stockStatusSummary: {
+            total_items: 0,
+            out_of_stock: 0,
+            low_stock: 0,
+            in_stock: 0
+        },
+        // 検索関連
+        searchQuery: '',
+        searchCategory: '',
+        searchMinPrice: '',
+        searchMaxPrice: '',
+        searchStockStatus: '',
+        searchPerformed: false,
+        searchResultCount: 0
     }
 },
 methods:{
@@ -202,6 +421,16 @@ methods:{
                 // 認証エラーの場合はログインページにリダイレクト
                 this.$router.push('/login');
             }
+        });
+        
+        // 在庫ステータスのサマリーを取得
+        variables.axiosAuth().get(variables.API_URL+"stock/status")
+        .then((response)=>{
+            console.log("Stock status summary received:", response.data);
+            this.stockStatusSummary = response.data;
+        })
+        .catch(error => {
+            console.error("Error fetching stock status summary:", error);
         });
 
         console.log("Fetching company data from", variables.API_URL+"company");
@@ -236,6 +465,8 @@ methods:{
         this.DateOfJoining="",
         this.Abstract="",
         this.Price="",
+        this.StockQuantity = 0,
+        this.LowStockThreshold = 5,
         this.PhotoFileName="anon.png";
         
         // エラー表示をクリア
@@ -257,6 +488,8 @@ methods:{
         this.DateOfJoining=emp.DateOfJoining,
         this.Abstract=emp.Abstract;
         this.Price=emp.Price;
+        this.StockQuantity=emp.StockQuantity;
+        this.LowStockThreshold=emp.LowStockThreshold;
         this.PhotoFileName=emp.PhotoFileName;
         
         // エラー表示をクリア
@@ -286,6 +519,18 @@ methods:{
             this.formErrors.Price = '価格は必須です';
         } else if (isNaN(this.Price) || Number(this.Price) <= 0) {
             this.formErrors.Price = '価格は正の数値を入力してください';
+        }
+        
+        if (this.StockQuantity === null || this.StockQuantity === undefined) {
+            this.formErrors.StockQuantity = '在庫数は必須です';
+        } else if (isNaN(this.StockQuantity) || Number(this.StockQuantity) < 0) {
+            this.formErrors.StockQuantity = '在庫数は0以上の数値を入力してください';
+        }
+        
+        if (this.LowStockThreshold === null || this.LowStockThreshold === undefined) {
+            this.formErrors.LowStockThreshold = '在庫僅少閾値は必須です';
+        } else if (isNaN(this.LowStockThreshold) || Number(this.LowStockThreshold) < 1) {
+            this.formErrors.LowStockThreshold = '在庫僅少閾値は1以上の数値を入力してください';
         }
         
         if (!this.PhotoFileName) {
@@ -374,6 +619,8 @@ methods:{
             DateOfJoining: dateOfJoining,
             Abstract: this.Abstract,
             Price: this.Price,
+            StockQuantity: this.StockQuantity,
+            LowStockThreshold: this.LowStockThreshold,
             PhotoFileName: this.PhotoFileName
         })
         .then((response)=>{
@@ -421,6 +668,8 @@ methods:{
             DateOfJoining:dateOfJoining,
             Abstract:this.Abstract,
             Price:this.Price,
+            StockQuantity:this.StockQuantity,
+            LowStockThreshold:this.LowStockThreshold,
             PhotoFileName:this.PhotoFileName
         })
         .then((response)=>{
@@ -491,6 +740,155 @@ methods:{
     }
 
 },
+    // 在庫管理用メソッド
+    getStockStatusClass(item) {
+        if (!item || !item.stock_status) return '';
+        
+        switch(item.stock_status) {
+            case '在庫切れ':
+                return 'badge bg-danger';
+            case '在庫僅少':
+                return 'badge bg-warning text-dark';
+            case '在庫あり':
+                return 'badge bg-success';
+            default:
+                return 'badge bg-secondary';
+        }
+    },
+    
+    showStockModal(item) {
+        this.currentStockItem = {...item};
+        this.stockChangeAmount = 0;
+        this.stockChangeError = '';
+        this.stockUpdateError = '';
+        this.stockUpdateSuccess = '';
+        
+        // モーダルを表示
+        const stockModal = new bootstrap.Modal(document.getElementById('stockModal'));
+        stockModal.show();
+    },
+    
+    updateStockQuantity() {
+        // 入力チェック
+        if (this.stockChangeAmount === 0) {
+            this.stockChangeError = '変更数を入力してください';
+            return;
+        }
+        
+        if (!Number.isInteger(Number(this.stockChangeAmount))) {
+            this.stockChangeError = '整数で入力してください';
+            return;
+        }
+        
+        this.stockChangeError = '';
+        this.stockUpdateError = '';
+        this.stockUpdateSuccess = '';
+        
+        // 在庫数更新API呼び出し
+        variables.axiosAuth().post(variables.API_URL + `stock/update/${this.currentStockItem.ItemId}`, {
+            quantity_change: this.stockChangeAmount
+        })
+        .then(response => {
+            console.log('Stock update response:', response.data);
+            this.stockUpdateSuccess = response.data.message;
+            this.currentStockItem = response.data.item;
+            
+            // 商品一覧を更新
+            this.refreshData();
+            
+            // 変更数フィールドをリセット
+            this.stockChangeAmount = 0;
+        })
+        .catch(error => {
+            console.error('Stock update error:', error);
+            this.stockUpdateError = '';
+            
+            if (error.response) {
+                if (error.response.data && error.response.data.message) {
+                    this.stockUpdateError = error.response.data.message;
+                } else if (error.response.data && error.response.data.errors) {
+                    const errorMessages = [];
+                    for (const field in error.response.data.errors) {
+                        errorMessages.push(`${field}: ${error.response.data.errors[field]}`);
+                    }
+                    this.stockUpdateError = errorMessages.join(', ');
+                } else {
+                    this.stockUpdateError = `エラーが発生しました (${error.response.status})`;
+                }
+            } else {
+                this.stockUpdateError = `エラーが発生しました: ${error.message || '不明なエラー'}`;
+            }
+        });
+    },
+    
+    loadLowStockItems() {
+        variables.axiosAuth().get(variables.API_URL + "stock/low")
+        .then(response => {
+            console.log('Low stock items:', response.data);
+            this.items = response.data;
+        })
+        .catch(error => {
+            console.error('Error fetching low stock items:', error);
+            if (error.response && error.response.status === 401) {
+                this.$router.push('/login');
+            }
+        });
+    },
+    
+    // 検索関連メソッド
+    performSearch() {
+        // 検索パラメータの構築
+        const params = new URLSearchParams();
+        
+        if (this.searchQuery) {
+            params.append('q', this.searchQuery);
+        }
+        
+        if (this.searchCategory) {
+            params.append('category', this.searchCategory);
+        }
+        
+        if (this.searchMinPrice) {
+            params.append('min_price', this.searchMinPrice);
+        }
+        
+        if (this.searchMaxPrice) {
+            params.append('max_price', this.searchMaxPrice);
+        }
+        
+        if (this.searchStockStatus) {
+            params.append('stock_status', this.searchStockStatus);
+        }
+        
+        // 検索APIを呼び出し
+        variables.axiosAuth().get(`${variables.API_URL}search?${params.toString()}`)
+        .then(response => {
+            console.log('Search results:', response.data);
+            this.items = response.data.results;
+            this.searchResultCount = response.data.count;
+            this.searchPerformed = true;
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            if (error.response && error.response.status === 401) {
+                this.$router.push('/login');
+            }
+        });
+    },
+    
+    resetSearch() {
+        // 検索パラメータをリセット
+        this.searchQuery = '';
+        this.searchCategory = '';
+        this.searchMinPrice = '';
+        this.searchMaxPrice = '';
+        this.searchStockStatus = '';
+        this.searchPerformed = false;
+        
+        // 全データを再取得
+        this.refreshData();
+    },
+
 mounted:function(){
     this.refreshData();
 }

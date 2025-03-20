@@ -85,16 +85,20 @@ class CategoryDetailSerializer(serializers.ModelSerializer):
 
 class ItemSerializer(serializers.ModelSerializer):
     category_name = serializers.SerializerMethodField()
+    stock_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Items 
         fields = ('ItemId', 'ItemName', 'Company', 'Category', 'category_name', 'DateOfJoining', 
-                 'Abstract', 'Price', 'PhotoFileName')
+                 'Abstract', 'Price', 'PhotoFileName', 'StockQuantity', 'LowStockThreshold', 'stock_status')
     
     def get_category_name(self, obj):
         if obj.Category:
             return obj.Category.CategoryName
         return None
+        
+    def get_stock_status(self, obj):
+        return obj.stock_status
         
     def validate_Abstract(self, value):
         """概要フィールドの検証"""
@@ -114,4 +118,20 @@ class ItemSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("価格は必須項目です。")
         if value <= 0:
             raise serializers.ValidationError("価格は0より大きい値を入力してください。")
+        return value
+        
+    def validate_StockQuantity(self, value):
+        """在庫数フィールドの検証"""
+        if value is None:
+            raise serializers.ValidationError("在庫数は必須項目です。")
+        if value < 0:
+            raise serializers.ValidationError("在庫数は0以上の値を入力してください。")
+        return value
+        
+    def validate_LowStockThreshold(self, value):
+        """在庫僅少閾値フィールドの検証"""
+        if value is None:
+            raise serializers.ValidationError("在庫僅少閾値は必須項目です。")
+        if value < 1:
+            raise serializers.ValidationError("在庫僅少閾値は1以上の値を入力してください。")
         return value

@@ -16,6 +16,11 @@ const routes = [
         path: '/category',
         component: category,
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/reports',
+        component: reports,
+        meta: { requiresAuth: true }
     }
 ]
 
