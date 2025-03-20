@@ -8,7 +8,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from ItemApp.models import Companys, Items, User, Category
+from ItemApp.models import Companys, Items, Category
+from django.contrib.auth.models import User
 from ItemApp.serializers import (
     CompanySerializer, ItemSerializer, UserSerializer, CustomTokenObtainPairSerializer,
     CategorySerializer, CategoryDetailSerializer
@@ -44,11 +45,31 @@ def companyApi(request, id=0):
         return Response(companys_serializer.data)
     
     elif request.method == 'POST':
-        companys_serializer = CompanySerializer(data=request.data)
-        if companys_serializer.is_valid():
-            companys_serializer.save()
-            return Response({"message": "正常に追加されました！"}, status=status.HTTP_201_CREATED)
-        return Response(companys_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            companys_serializer = CompanySerializer(data=request.data)
+            if companys_serializer.is_valid():
+                companys_serializer.save()
+                return Response({"message": "正常に追加されました！"}, status=status.HTTP_201_CREATED)
+            
+            # バリデーションエラーの整形
+            error_messages = {}
+            for field, errors in companys_serializer.errors.items():
+                if field == 'CompanyName' and 'This field may not be blank.' in str(errors):
+                    error_messages[field] = '会社名は必須項目です。'
+                elif field == 'non_field_errors':
+                    error_messages['全般'] = errors
+                else:
+                    error_messages[field] = errors
+            
+            return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            print("会社追加エラー:", str(e))
+            print(traceback.format_exc())
+            return Response({"errors": {"全般": "予期せぬエラーが発生しました。"}, 
+                            "message": f"会社登録中にエラーが発生しました: {str(e)}"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'PUT':
         try:
@@ -56,11 +77,31 @@ def companyApi(request, id=0):
         except Companys.DoesNotExist:
             return Response({"message": "会社が見つかりません"}, status=status.HTTP_404_NOT_FOUND)
         
-        companys_serializer = CompanySerializer(company, data=request.data)
-        if companys_serializer.is_valid():
-            companys_serializer.save()
-            return Response({"message": "正常に更新されました！"})
-        return Response(companys_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            companys_serializer = CompanySerializer(company, data=request.data)
+            if companys_serializer.is_valid():
+                companys_serializer.save()
+                return Response({"message": "正常に更新されました！"})
+            
+            # バリデーションエラーの整形
+            error_messages = {}
+            for field, errors in companys_serializer.errors.items():
+                if field == 'CompanyName' and 'This field may not be blank.' in str(errors):
+                    error_messages[field] = '会社名は必須項目です。'
+                elif field == 'non_field_errors':
+                    error_messages['全般'] = errors
+                else:
+                    error_messages[field] = errors
+            
+            return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            print("会社更新エラー:", str(e))
+            print(traceback.format_exc())
+            return Response({"errors": {"全般": "予期せぬエラーが発生しました。"}, 
+                            "message": f"会社更新中にエラーが発生しました: {str(e)}"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         try:
@@ -80,23 +121,61 @@ def itemApi(request, id=0):
         return Response(items_serializer.data)
     
     elif request.method == 'POST':
-        items_serializer = ItemSerializer(data=request.data)
-        if items_serializer.is_valid():
-            items_serializer.save()
-            return Response({"message": "正常に追加されました！"}, status=status.HTTP_201_CREATED)
-        return Response(items_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            print("リクエストデータ:", request.data)
+            items_serializer = ItemSerializer(data=request.data)
+            if items_serializer.is_valid():
+                items_serializer.save()
+                return Response({"message": "正常に追加されました！"}, status=status.HTTP_201_CREATED)
+            
+            # バリデーションエラーの整形
+            print("バリデーションエラー:", items_serializer.errors)
+            error_messages = {}
+            for field, errors in items_serializer.errors.items():
+                if field == 'Abstract' and 'This field may not be blank.' in str(errors):
+                    error_messages[field] = '概要は必須項目です。商品の説明を入力してください。'
+                elif field == 'non_field_errors':
+                    error_messages['全般'] = errors
+                else:
+                    error_messages[field] = errors
+            
+            return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            print("商品追加エラー:", str(e))
+            print(traceback.format_exc())
+            return Response({"errors": {"全般": "予期せぬエラーが発生しました。"}, 
+                            "message": f"商品登録中にエラーが発生しました: {str(e)}"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'PUT':
         try:
             item = Items.objects.get(ItemId=request.data['ItemId'])
         except Items.DoesNotExist:
             return Response({"message": "商品が見つかりません"}, status=status.HTTP_404_NOT_FOUND)
+        except KeyError:
+            return Response({"errors": {"ItemId": "商品IDが指定されていません"}, 
+                            "message": "商品IDが必要です"}, 
+                           status=status.HTTP_400_BAD_REQUEST)
         
         items_serializer = ItemSerializer(item, data=request.data)
         if items_serializer.is_valid():
             items_serializer.save()
             return Response({"message": "正常に更新されました！"})
-        return Response(items_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        # バリデーションエラーの整形
+        error_messages = {}
+        for field, errors in items_serializer.errors.items():
+            if field == 'Abstract' and 'This field may not be blank.' in str(errors):
+                error_messages[field] = '概要は必須項目です。商品の説明を入力してください。'
+            elif field == 'non_field_errors':
+                error_messages['全般'] = errors
+            else:
+                error_messages[field] = errors
+        
+        return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                       status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         try:
@@ -133,11 +212,31 @@ def categoryApi(request, id=0):
             return Response(categories_serializer.data)
     
     elif request.method == 'POST':
-        category_serializer = CategorySerializer(data=request.data)
-        if category_serializer.is_valid():
-            category_serializer.save()
-            return Response({"message": "カテゴリが正常に追加されました！"}, status=status.HTTP_201_CREATED)
-        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            category_serializer = CategorySerializer(data=request.data)
+            if category_serializer.is_valid():
+                category_serializer.save()
+                return Response({"message": "カテゴリが正常に追加されました！"}, status=status.HTTP_201_CREATED)
+            
+            # バリデーションエラーの整形
+            error_messages = {}
+            for field, errors in category_serializer.errors.items():
+                if field == 'CategoryName' and 'This field may not be blank.' in str(errors):
+                    error_messages[field] = 'カテゴリ名は必須項目です。'
+                elif field == 'non_field_errors':
+                    error_messages['全般'] = errors
+                else:
+                    error_messages[field] = errors
+            
+            return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            print("カテゴリ追加エラー:", str(e))
+            print(traceback.format_exc())
+            return Response({"errors": {"全般": "予期せぬエラーが発生しました。"}, 
+                            "message": f"カテゴリ登録中にエラーが発生しました: {str(e)}"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'PUT':
         try:
@@ -145,11 +244,31 @@ def categoryApi(request, id=0):
         except Category.DoesNotExist:
             return Response({"message": "カテゴリが見つかりません"}, status=status.HTTP_404_NOT_FOUND)
         
-        category_serializer = CategorySerializer(category, data=request.data)
-        if category_serializer.is_valid():
-            category_serializer.save()
-            return Response({"message": "カテゴリが正常に更新されました！"})
-        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            category_serializer = CategorySerializer(category, data=request.data)
+            if category_serializer.is_valid():
+                category_serializer.save()
+                return Response({"message": "カテゴリが正常に更新されました！"})
+            
+            # バリデーションエラーの整形
+            error_messages = {}
+            for field, errors in category_serializer.errors.items():
+                if field == 'CategoryName' and 'This field may not be blank.' in str(errors):
+                    error_messages[field] = 'カテゴリ名は必須項目です。'
+                elif field == 'non_field_errors':
+                    error_messages['全般'] = errors
+                else:
+                    error_messages[field] = errors
+            
+            return Response({"errors": error_messages, "message": "入力内容に問題があります。修正してください。"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            print("カテゴリ更新エラー:", str(e))
+            print(traceback.format_exc())
+            return Response({"errors": {"全般": "予期せぬエラーが発生しました。"}, 
+                            "message": f"カテゴリ更新中にエラーが発生しました: {str(e)}"}, 
+                          status=status.HTTP_400_BAD_REQUEST)
     
     elif request.method == 'DELETE':
         try:

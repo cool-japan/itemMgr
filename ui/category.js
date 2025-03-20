@@ -76,21 +76,34 @@ const category = {
                     <div class="modal-body">
                         <div class="input-group mb-3">
                             <span class="input-group-text">カテゴリ名</span>
-                            <input type="text" class="form-control" v-model="CategoryName">
+                            <input type="text" class="form-control" v-model="CategoryName"
+                                  :class="{'is-invalid': formErrors.CategoryName}" required>
+                            <div class="invalid-feedback" v-if="formErrors.CategoryName">{{formErrors.CategoryName}}</div>
                         </div>
                         
                         <div class="input-group mb-3">
                             <span class="input-group-text">説明</span>
-                            <textarea class="form-control" v-model="Description"></textarea>
+                            <textarea class="form-control" v-model="Description"
+                                     :class="{'is-invalid': formErrors.Description}"></textarea>
+                            <div class="invalid-feedback" v-if="formErrors.Description">{{formErrors.Description}}</div>
                         </div>
                         
                         <div class="input-group mb-3" v-if="showParentDropdown">
                             <span class="input-group-text">親カテゴリ</span>
-                            <select class="form-select" v-model="ParentCategory">
+                            <select class="form-select" v-model="ParentCategory"
+                                   :class="{'is-invalid': formErrors.ParentCategory}">
                                 <option v-for="cat in allCategories" :value="cat.CategoryId">
                                     {{ cat.CategoryName }}
                                 </option>
                             </select>
+                            <div class="invalid-feedback" v-if="formErrors.ParentCategory">{{formErrors.ParentCategory}}</div>
+                        </div>
+                        
+                        <div class="alert alert-danger" v-if="serverMessage && Object.keys(formErrors).length > 0">
+                            <h5>{{serverMessage}}</h5>
+                            <ul>
+                                <li v-for="(error, field) in formErrors">{{field}}: {{error}}</li>
+                            </ul>
                         </div>
                         
                         <button type="button" @click="createClick()"
@@ -120,7 +133,9 @@ const category = {
             CategoryName: "",
             Description: "",
             ParentCategory: null,
-            showParentDropdown: false
+            showParentDropdown: false,
+            formErrors: {},
+            serverMessage: ""
         }
     },
     
@@ -167,6 +182,8 @@ const category = {
             this.Description = "";
             this.ParentCategory = null;
             this.showParentDropdown = false;
+            // エラー表示をクリア
+            this.clearErrors();
         },
         
         addSubcategoryClick() {
@@ -176,6 +193,8 @@ const category = {
             this.Description = "";
             this.ParentCategory = this.selectedCategory;
             this.showParentDropdown = false;
+            // エラー表示をクリア
+            this.clearErrors();
             
             // Show the modal
             let myModal = new bootstrap.Modal(document.getElementById('categoryModal'));
@@ -189,9 +208,73 @@ const category = {
             this.Description = cat.Description || "";
             this.ParentCategory = cat.ParentCategory;
             this.showParentDropdown = true;
+            // エラー表示をクリア
+            this.clearErrors();
+        },
+        
+        clearErrors() {
+            this.formErrors = {};
+            this.serverMessage = "";
+        },
+        
+        validateForm() {
+            // フォームのバリデーション
+            this.formErrors = {};
+            
+            if (!this.CategoryName || this.CategoryName.trim() === '') {
+                this.formErrors.CategoryName = 'カテゴリ名は必須項目です。';
+            }
+            
+            return Object.keys(this.formErrors).length === 0;
+        },
+        
+        handleApiError(error, action) {
+            console.error(`Error ${action} category:`, error);
+            
+            let errorMessage = `カテゴリの${action}に失敗しました`;
+            this.formErrors = {};
+            
+            if (error.response) {
+                if (error.response.status === 401) {
+                    this.$router.push('/login');
+                    return;
+                }
+                
+                if (error.response.data) {
+                    if (error.response.data.errors) {
+                        // 新しいAPIエラー形式
+                        this.formErrors = error.response.data.errors;
+                        this.serverMessage = error.response.data.message || errorMessage;
+                    } else if (error.response.data.message) {
+                        // メッセージのみの場合
+                        this.formErrors.全般 = error.response.data.message;
+                        this.serverMessage = errorMessage;
+                    } else {
+                        // 従来のエラー形式
+                        for (const field in error.response.data) {
+                            this.formErrors[field] = Array.isArray(error.response.data[field]) 
+                                ? error.response.data[field].join(', ') 
+                                : error.response.data[field];
+                        }
+                        this.serverMessage = errorMessage;
+                    }
+                }
+            } else {
+                this.formErrors.全般 = `エラーが発生しました: ${error.message || '不明なエラー'}`;
+                this.serverMessage = errorMessage;
+            }
         },
         
         createClick() {
+            // エラー表示をクリア
+            this.clearErrors();
+            
+            // フォームのバリデーション
+            if (!this.validateForm()) {
+                this.serverMessage = "入力内容を確認してください";
+                return;
+            }
+            
             let data = {
                 CategoryName: this.CategoryName,
                 Description: this.Description
@@ -218,12 +301,20 @@ const category = {
                     modal.hide();
                 })
                 .catch(error => {
-                    console.error("Error creating category:", error);
-                    alert("カテゴリの作成に失敗しました。");
+                    this.handleApiError(error, "追加");
                 });
         },
         
         updateClick() {
+            // エラー表示をクリア
+            this.clearErrors();
+            
+            // フォームのバリデーション
+            if (!this.validateForm()) {
+                this.serverMessage = "入力内容を確認してください";
+                return;
+            }
+            
             let data = {
                 CategoryId: this.CategoryId,
                 CategoryName: this.CategoryName,
@@ -248,8 +339,7 @@ const category = {
                     modal.hide();
                 })
                 .catch(error => {
-                    console.error("Error updating category:", error);
-                    alert("カテゴリの更新に失敗しました。");
+                    this.handleApiError(error, "更新");
                 });
         },
         
@@ -276,6 +366,7 @@ const category = {
                     } else {
                         alert("カテゴリの削除に失敗しました。");
                     }
+                    // メインビューのエラーはアラートで十分なので、ここではhandleApiErrorは使わない
                 });
         }
     },

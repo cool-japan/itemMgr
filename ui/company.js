@@ -109,7 +109,16 @@ data-bs-target="#exampleModal"
 
         <div class="input-group mb-3">
             <span class="input-group-text">会社名</span>
-            <input type="text" class="form-control" v-model="CompanyName">
+            <input type="text" class="form-control" v-model="CompanyName" 
+                   :class="{'is-invalid': formErrors.CompanyName}" required>
+            <div class="invalid-feedback" v-if="formErrors.CompanyName">{{formErrors.CompanyName}}</div>
+        </div>
+
+        <div class="alert alert-danger" v-if="serverMessage && Object.keys(formErrors).length > 0">
+            <h5>{{serverMessage}}</h5>
+            <ul>
+                <li v-for="(error, field) in formErrors">{{field}}: {{error}}</li>
+            </ul>
         </div>
 
         <button type="button" @click="createClick()"
@@ -141,7 +150,9 @@ data(){
         CompanyId:0,
         CompanyNameFilter:"",
         CompanyIdFilter:"",
-        companysWithoutFilter:[]
+        companysWithoutFilter:[],
+        formErrors: {},
+        serverMessage: ""
     }
 },
 methods:{
@@ -166,28 +177,98 @@ methods:{
         this.modalTitle="会社マスタ追加";
         this.CompanyId=0;
         this.CompanyName="";
+        // エラー表示をクリア
+        this.clearErrors();
     },
     editClick(dep){
         this.modalTitle="会社マスタ編集";
         this.CompanyId=dep.CompanyId;
         this.CompanyName=dep.CompanyName;
+        // エラー表示をクリア
+        this.clearErrors();
+    },
+    clearErrors() {
+        this.formErrors = {};
+        this.serverMessage = "";
+    },
+    validateForm() {
+        // フォームのバリデーション
+        this.formErrors = {};
+        
+        if (!this.CompanyName || this.CompanyName.trim() === '') {
+            this.formErrors.CompanyName = '会社名は必須項目です。';
+        }
+        
+        return Object.keys(this.formErrors).length === 0;
+    },
+    handleApiError(error, action) {
+        console.error(`Error ${action} company:`, error);
+        
+        let errorMessage = `会社の${action}に失敗しました`;
+        this.formErrors = {};
+        
+        if (error.response) {
+            if (error.response.status === 401) {
+                this.$router.push('/login');
+                return;
+            }
+            
+            if (error.response.data) {
+                if (error.response.data.errors) {
+                    // 新しいAPIエラー形式
+                    this.formErrors = error.response.data.errors;
+                    this.serverMessage = error.response.data.message || errorMessage;
+                } else {
+                    // 従来のエラー形式
+                    for (const field in error.response.data) {
+                        this.formErrors[field] = Array.isArray(error.response.data[field]) 
+                            ? error.response.data[field].join(', ') 
+                            : error.response.data[field];
+                    }
+                    this.serverMessage = errorMessage;
+                }
+            }
+        } else {
+            this.formErrors.全般 = `エラーが発生しました: ${error.message || '不明なエラー'}`;
+            this.serverMessage = errorMessage;
+        }
     },
     createClick(){
+        // エラー表示をクリア
+        this.clearErrors();
+        
+        // フォームのバリデーション
+        if (!this.validateForm()) {
+            this.serverMessage = "入力内容を確認してください";
+            return;
+        }
+        
         variables.axiosAuth().post(variables.API_URL+"company", {
             CompanyName:this.CompanyName
         })
         .then((response)=>{
             this.refreshData();
             alert(response.data.message || response.data);
+            // モーダルを閉じる
+            const modal = bootstrap.Modal.getInstance(document.getElementById('exampleModal'));
+            if (modal) {
+                modal.hide();
+            }
         })
         .catch(error => {
-            console.error("Error creating company:", error);
-            if (error.response && error.response.status === 401) {
-                this.$router.push('/login');
-            }
+            this.handleApiError(error, "追加");
         });
     },
     updateClick(){
+        // エラー表示をクリア
+        this.clearErrors();
+        
+        // フォームのバリデーション
+        if (!this.validateForm()) {
+            this.serverMessage = "入力内容を確認してください";
+            return;
+        }
+        
         variables.axiosAuth().put(variables.API_URL+"company", {
             CompanyId:this.CompanyId,
             CompanyName:this.CompanyName
@@ -195,28 +276,28 @@ methods:{
         .then((response)=>{
             this.refreshData();
             alert(response.data.message || response.data);
+            // モーダルを閉じる
+            const modal = bootstrap.Modal.getInstance(document.getElementById('exampleModal'));
+            if (modal) {
+                modal.hide();
+            }
         })
         .catch(error => {
-            console.error("Error updating company:", error);
-            if (error.response && error.response.status === 401) {
-                this.$router.push('/login');
-            }
+            this.handleApiError(error, "更新");
         });
     },
     deleteClick(id){
         if(!confirm("削除してもよろしいですか？")){
             return;
         }
+        
         variables.axiosAuth().delete(variables.API_URL+"company/"+id)
         .then((response)=>{
             this.refreshData();
             alert(response.data.message || response.data);
         })
         .catch(error => {
-            console.error("Error deleting company:", error);
-            if (error.response && error.response.status === 401) {
-                this.$router.push('/login');
-            }
+            this.handleApiError(error, "削除");
         });
     },
     FilterFn(){
