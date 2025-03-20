@@ -147,7 +147,8 @@ data(){
 methods:{
     refreshData(){
         console.log("Fetching company data from", variables.API_URL+"company");
-        axios.get(variables.API_URL+"company")
+        // JWT認証を使用
+        variables.axiosAuth().get(variables.API_URL+"company")
         .then((response)=>{
             console.log("Company data received:", response.data);
             this.companys=response.data;
@@ -155,6 +156,10 @@ methods:{
         })
         .catch(error => {
             console.error("Error fetching company data:", error);
+            if (error.response && error.response.status === 401) {
+                // 認証エラーの場合はログインページにリダイレクト
+                this.$router.push('/login');
+            }
         });
     },
     addClick(){
@@ -168,34 +173,51 @@ methods:{
         this.CompanyName=dep.CompanyName;
     },
     createClick(){
-        axios.post(variables.API_URL+"company",{
+        variables.axiosAuth().post(variables.API_URL+"company", {
             CompanyName:this.CompanyName
         })
         .then((response)=>{
             this.refreshData();
-            alert(response.data);
+            alert(response.data.message || response.data);
+        })
+        .catch(error => {
+            console.error("Error creating company:", error);
+            if (error.response && error.response.status === 401) {
+                this.$router.push('/login');
+            }
         });
     },
     updateClick(){
-        axios.put(variables.API_URL+"company",{
+        variables.axiosAuth().put(variables.API_URL+"company", {
             CompanyId:this.CompanyId,
             CompanyName:this.CompanyName
         })
         .then((response)=>{
             this.refreshData();
-            alert(response.data);
+            alert(response.data.message || response.data);
+        })
+        .catch(error => {
+            console.error("Error updating company:", error);
+            if (error.response && error.response.status === 401) {
+                this.$router.push('/login');
+            }
         });
     },
     deleteClick(id){
         if(!confirm("削除してもよろしいですか？")){
             return;
         }
-        axios.delete(variables.API_URL+"company/"+id)
+        variables.axiosAuth().delete(variables.API_URL+"company/"+id)
         .then((response)=>{
             this.refreshData();
-            alert(response.data);
+            alert(response.data.message || response.data);
+        })
+        .catch(error => {
+            console.error("Error deleting company:", error);
+            if (error.response && error.response.status === 401) {
+                this.$router.push('/login');
+            }
         });
-
     },
     FilterFn(){
         var CompanyIdFilter=this.CompanyIdFilter;
