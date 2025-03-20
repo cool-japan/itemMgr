@@ -13,6 +13,9 @@ import json
 class ModelTests(TestCase):
     """モデルのテストケース"""
     
+    # djangoのテスト時に自動でトランザクション管理とマイグレーションを行う設定
+    databases = "__all__"
+    
     def setUp(self):
         """テスト用データのセットアップ"""
         # 会社の作成
@@ -76,6 +79,9 @@ class ModelTests(TestCase):
 
 class SerializerTests(TestCase):
     """シリアライザのテストケース"""
+    
+    # djangoのテスト時に自動でトランザクション管理とマイグレーションを行う設定
+    databases = "__all__"
     
     def setUp(self):
         """テスト用データのセットアップ"""
@@ -146,6 +152,9 @@ class SerializerTests(TestCase):
 
 class APITests(APITestCase):
     """APIエンドポイントのテストケース"""
+    
+    # djangoのテスト時に自動でトランザクション管理とマイグレーションを行う設定
+    databases = "__all__"
     
     def setUp(self):
         """テスト用データのセットアップ"""
