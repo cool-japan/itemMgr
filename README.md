@@ -61,6 +61,14 @@
 - 商品カテゴリ管理（追加・編集・削除）
 - JWT認証とユーザー管理
 - 入力フォームバリデーションと詳細なエラーフィードバック（詳細は[validation.md](validation.md)参照）
+- グローバル認証状態管理（イベントベース）
+
+## 技術的改善
+
+- Composition APIを用いたコンポーネント設計（[technical_migration_plan.md](technical_migration_plan.md)参照）
+- TypeScriptによる型安全なコード
+- 自動テスト環境の構築（Vitest）
+- CI/CDパイプラインの実装（GitHub Actions）
 
 ## 開発環境
 
