@@ -8,8 +8,11 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from ItemApp.models import Companys, Items, User
-from ItemApp.serializers import CompanySerializer, ItemSerializer, UserSerializer, CustomTokenObtainPairSerializer
+from ItemApp.models import Companys, Items, User, Category
+from ItemApp.serializers import (
+    CompanySerializer, ItemSerializer, UserSerializer, CustomTokenObtainPairSerializer,
+    CategorySerializer, CategoryDetailSerializer
+)
 
 from django.core.files.storage import default_storage
 
@@ -110,6 +113,68 @@ def public_items(request):
     items = Items.objects.all()
     items_serializer = ItemSerializer(items, many=True)
     return Response(items_serializer.data)
+
+# Category API views with JWT authentication
+@api_view(['GET', 'POST', 'PUT', 'DELETE'])
+@permission_classes([IsAuthenticated])
+def categoryApi(request, id=0):
+    if request.method == 'GET':
+        if id != 0:
+            try:
+                category = Category.objects.get(CategoryId=id)
+                category_serializer = CategoryDetailSerializer(category)
+                return Response(category_serializer.data)
+            except Category.DoesNotExist:
+                return Response({"message": "カテゴリが見つかりません"}, status=status.HTTP_404_NOT_FOUND)
+        else:
+            # Parent categories only (for top level view)
+            categories = Category.objects.filter(ParentCategory__isnull=True)
+            categories_serializer = CategorySerializer(categories, many=True)
+            return Response(categories_serializer.data)
+    
+    elif request.method == 'POST':
+        category_serializer = CategorySerializer(data=request.data)
+        if category_serializer.is_valid():
+            category_serializer.save()
+            return Response({"message": "カテゴリが正常に追加されました！"}, status=status.HTTP_201_CREATED)
+        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'PUT':
+        try:
+            category = Category.objects.get(CategoryId=request.data['CategoryId'])
+        except Category.DoesNotExist:
+            return Response({"message": "カテゴリが見つかりません"}, status=status.HTTP_404_NOT_FOUND)
+        
+        category_serializer = CategorySerializer(category, data=request.data)
+        if category_serializer.is_valid():
+            category_serializer.save()
+            return Response({"message": "カテゴリが正常に更新されました！"})
+        return Response(category_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    elif request.method == 'DELETE':
+        try:
+            category = Category.objects.get(CategoryId=id)
+            # Check if this category has subcategories
+            if category.subcategories.count() > 0:
+                return Response({"message": "このカテゴリにはサブカテゴリがあるため削除できません。"}, 
+                                status=status.HTTP_400_BAD_REQUEST)
+            # Check if this category has items
+            if category.items.count() > 0:
+                return Response({"message": "このカテゴリには商品があるため削除できません。"}, 
+                                status=status.HTTP_400_BAD_REQUEST)
+                
+            category.delete()
+            return Response({"message": "カテゴリが正常に削除されました！"}, status=status.HTTP_204_NO_CONTENT)
+        except Category.DoesNotExist:
+            return Response({"message": "カテゴリが見つかりません"}, status=status.HTTP_404_NOT_FOUND)
+
+# Get all categories (for dropdowns)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def allCategoriesApi(request):
+    categories = Category.objects.all()
+    categories_serializer = CategorySerializer(categories, many=True)
+    return Response(categories_serializer.data)
 
 # File upload endpoint with JWT authentication
 @api_view(['POST'])

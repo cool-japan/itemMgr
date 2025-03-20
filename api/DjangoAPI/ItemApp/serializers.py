@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from ItemApp.models import Companys, Items, User
+from ItemApp.models import Companys, Items, User, Category
 from django.contrib.auth.password_validation import validate_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -38,7 +38,34 @@ class CompanySerializer(serializers.ModelSerializer):
         model = Companys 
         fields = ('CompanyId', 'CompanyName')
 
+class CategorySerializer(serializers.ModelSerializer):
+    parent_name = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Category
+        fields = ('CategoryId', 'CategoryName', 'Description', 'ParentCategory', 'parent_name')
+    
+    def get_parent_name(self, obj):
+        if obj.ParentCategory:
+            return obj.ParentCategory.CategoryName
+        return None
+
+class CategoryDetailSerializer(serializers.ModelSerializer):
+    subcategories = CategorySerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Category
+        fields = ('CategoryId', 'CategoryName', 'Description', 'ParentCategory', 'subcategories')
+
 class ItemSerializer(serializers.ModelSerializer):
+    category_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = Items 
-        fields = ('ItemId', 'ItemName', 'Company', 'DateOfJoining', 'Abstract', 'Price', 'PhotoFileName')
+        fields = ('ItemId', 'ItemName', 'Company', 'Category', 'category_name', 'DateOfJoining', 
+                 'Abstract', 'Price', 'PhotoFileName')
+    
+    def get_category_name(self, obj):
+        if obj.Category:
+            return obj.Category.CategoryName
+        return None

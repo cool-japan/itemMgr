@@ -11,6 +11,11 @@ const routes = [
         path: '/company', 
         component: company,
         meta: { requiresAuth: true }
+    },
+    {
+        path: '/category',
+        component: category,
+        meta: { requiresAuth: true }
     }
 ]
 

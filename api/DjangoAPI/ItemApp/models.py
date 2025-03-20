@@ -42,12 +42,31 @@ class User(AbstractUser):
 class Companys(models.Model):
     CompanyId = models.AutoField(primary_key=True)
     CompanyName = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.CompanyName
+
+class Category(models.Model):
+    CategoryId = models.AutoField(primary_key=True)
+    CategoryName = models.CharField(max_length=100)
+    Description = models.TextField(blank=True, null=True)
+    ParentCategory = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True, related_name='subcategories')
+    
+    class Meta:
+        verbose_name_plural = "Categories"
+    
+    def __str__(self):
+        return self.CategoryName
 
 class Items(models.Model):
     ItemId = models.AutoField(primary_key=True)
     ItemName = models.CharField(max_length=100)
     Company = models.CharField(max_length=100)
+    Category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True, related_name='items')
     DateOfJoining = models.DateField()
     Abstract = models.TextField()
     Price = models.DecimalField(max_digits=8, decimal_places=2)
     PhotoFileName = models.CharField(max_length=100)
+    
+    def __str__(self):
+        return self.ItemName

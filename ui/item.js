@@ -41,7 +41,10 @@ data-bs-target="#exampleModal"
         <td>{{emp.ItemName}}</td>
         <td>{{emp.Company}}</td>
 <!--        <td>{{emp.DateOfJoining}}</td> -->
-        <td>{{emp.Abstract}}</td>
+        <td>
+            {{emp.Abstract}}
+            <span v-if="emp.category_name" class="badge bg-info">{{emp.category_name}}</span>
+        </td>
         <td>{{emp.Price}}</td>
         <td>
             <button type="button"
@@ -89,6 +92,16 @@ data-bs-target="#exampleModal"
                 <select class="form-select" v-model="Company">
                     <option v-for="dep in companys">
                     {{dep.CompanyName}}
+                    </option>
+                </select>
+            </div>
+            
+            <div class="input-group mb-3">
+                <span class="input-group-text">カテゴリ</span>
+                <select class="form-select" v-model="CategoryId">
+                    <option value="" selected>カテゴリなし</option>
+                    <option v-for="cat in categories" :value="cat.CategoryId">
+                    {{cat.CategoryName}}
                     </option>
                 </select>
             </div>
@@ -141,10 +154,12 @@ data(){
     return{
         companys:[],
         items:[],
+        categories:[],
         modalTitle:"",
         ItemId:0,
         ItemName:"",
         Company:"",
+        CategoryId:"",
         DateOfJoining:"",
         Abstract:"",
         Price:"",
@@ -182,12 +197,22 @@ methods:{
                 this.$router.push('/login');
             }
         });
+        
+        // Get all categories for dropdown
+        variables.axiosAuth().get(variables.API_URL + "categories/all")
+        .then((response) => {
+            this.categories = response.data;
+        })
+        .catch(error => {
+            console.error("Error fetching categories:", error);
+        });
     },
     addClick(){
         this.modalTitle="商品追加";
         this.ItemId=0;
         this.ItemName="";
         this.Company="",
+        this.CategoryId="",
         this.DateOfJoining="",
         this.Abstract="",
         this.Price="",
@@ -198,6 +223,7 @@ methods:{
         this.ItemId=emp.ItemId;
         this.ItemName=emp.ItemName;
         this.Company=emp.Company,
+        this.CategoryId=emp.Category || "",
         this.DateOfJoining=emp.DateOfJoining,
         this.Abstract=emp.Abstract;
         this.Price=emp.Price;
@@ -207,6 +233,7 @@ methods:{
         variables.axiosAuth().post(variables.API_URL+"item", {
             ItemName:this.ItemName,
             Company:this.Company,
+            Category:this.CategoryId || null,
             DateOfJoining:this.DateOfJoining,
             Abstract:this.Abstract,
             Price:this.Price,
@@ -228,6 +255,7 @@ methods:{
             ItemId:this.ItemId,
             ItemName:this.ItemName,
             Company:this.Company,
+            Category:this.CategoryId || null,
             DateOfJoining:this.DateOfJoining,
             Abstract:this.Abstract,
             Price:this.Price,
