@@ -195,43 +195,43 @@ class APITests(APITestCase):
     def test_company_api(self):
         """会社APIをテスト"""
         # 一覧取得
-        response = self.client.get('/api/company')
+        response = self.client.get('/company')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         
         # 新規作成
         data = {'CompanyName': '新しい会社'}
-        response = self.client.post('/api/company', data, format='json')
+        response = self.client.post('/company', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Companys.objects.count(), 2)
         
         # 更新
         company_id = Companys.objects.get(CompanyName='新しい会社').CompanyId
         data = {'CompanyId': company_id, 'CompanyName': '更新された会社'}
-        response = self.client.put('/api/company', data, format='json')
+        response = self.client.put('/company', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(Companys.objects.get(CompanyId=company_id).CompanyName, '更新された会社')
         
         # 削除
-        response = self.client.delete(f'/api/company/{company_id}')
+        response = self.client.delete(f'/company/{company_id}')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Companys.objects.count(), 1)
     
     def test_category_api(self):
         """カテゴリAPIをテスト"""
         # 一覧取得
-        response = self.client.get('/api/category')
+        response = self.client.get('/category')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         # 詳細取得
-        response = self.client.get(f'/api/category/{self.category.CategoryId}')
+        response = self.client.get(f'/category/{self.category.CategoryId}')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['CategoryName'], 'テストカテゴリ')
     
     def test_item_api(self):
         """商品APIをテスト"""
         # 一覧取得
-        response = self.client.get('/api/item')
+        response = self.client.get('/item')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         
@@ -247,42 +247,42 @@ class APITests(APITestCase):
             'StockQuantity': 20,
             'LowStockThreshold': 5
         }
-        response = self.client.post('/api/item', data, format='json')
+        response = self.client.post('/item', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Items.objects.count(), 2)
     
     def test_search_api(self):
         """検索APIをテスト"""
         # キーワード検索
-        response = self.client.get('/api/search?q=テスト')
+        response = self.client.get('/search?q=テスト')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
         
         # カテゴリ検索
-        response = self.client.get(f'/api/search?category={self.category.CategoryId}')
+        response = self.client.get(f'/search?category={self.category.CategoryId}')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
         
         # 価格範囲検索
-        response = self.client.get('/api/search?min_price=500&max_price=1500')
+        response = self.client.get('/search?min_price=500&max_price=1500')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
         
         # 在庫状態検索
-        response = self.client.get('/api/search?stock_status=in_stock')
+        response = self.client.get('/search?stock_status=in_stock')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['count'], 1)
     
     def test_stock_management_api(self):
         """在庫管理APIをテスト"""
         # 在庫状態の取得
-        response = self.client.get('/api/stock/status')
+        response = self.client.get('/stock/status')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['total_items'], 1)
         
         # 在庫数の更新
         data = {'quantity_change': 5}
-        response = self.client.post(f'/api/stock/update/{self.item.ItemId}', data, format='json')
+        response = self.client.post(f'/stock/update/{self.item.ItemId}', data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.item.refresh_from_db()
         self.assertEqual(self.item.StockQuantity, 15)
@@ -290,20 +290,20 @@ class APITests(APITestCase):
         # 在庫僅少商品の取得
         self.item.StockQuantity = 3
         self.item.save()
-        response = self.client.get('/api/stock/low')
+        response = self.client.get('/stock/low')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
     
     def test_report_api(self):
         """レポートAPIをテスト"""
         # 在庫統計レポート
-        response = self.client.get('/api/reports/inventory-statistics')
+        response = self.client.get('/reports/inventory-statistics')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         # カテゴリ別レポート
-        response = self.client.get('/api/reports/sales-by-category')
+        response = self.client.get('/reports/sales-by-category')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         # 在庫価値レポート
-        response = self.client.get('/api/reports/stock-value')
+        response = self.client.get('/reports/stock-value')
         self.assertEqual(response.status_code, status.HTTP_200_OK)

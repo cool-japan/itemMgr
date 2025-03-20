@@ -15,7 +15,17 @@ coverage html -d /tmp/itemMgr/coverage_html
 
 # テスト自動実行スクリプト
 /tmp/itemMgr/run_tests.sh
+
+# モデル変更後のマイグレーション作成
+cd /tmp/itemMgr/api/DjangoAPI
+python manage.py makemigrations
 ```
+
+### テスト実行時の注意点
+
+- テスト実行時は `run_tests.sh` スクリプトを使用すると、マイグレーションやカバレッジの設定が自動的に行われます
+- 現在のテストカバレッジは約72%です
+- APIエンドポイントのテスト時はURLパスに `/api/` プレフィックスを使用しないでください
 
 ## Project Structure
 

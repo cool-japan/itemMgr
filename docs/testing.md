@@ -68,7 +68,15 @@ def test_new_model_feature(self):
 ```python
 def test_new_api_endpoint(self):
     """新APIエンドポイントのテスト"""
-    response = self.client.get('/api/new_endpoint')
+    response = self.client.get('/new_endpoint')
     self.assertEqual(response.status_code, status.HTTP_200_OK)
     # レスポンスの内容を検証
 ```
+
+## 注意事項
+
+1. **URLパス**: APIエンドポイントをテストする際は、URLには `/api/` プレフィックスを付けないでください。正しいパスは単に `/endpoint` の形式です。
+
+2. **マイグレーション**: テスト実行時にはマイグレーションが自動的に適用されますが、モデルを変更した場合は事前に `python manage.py makemigrations` を実行する必要があります。
+
+3. **モジュールインポート**: ビューやモデルのテスト時に必要なモジュール（例: `django.db.models`）が正しくインポートされていることを確認してください。

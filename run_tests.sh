@@ -7,6 +7,9 @@ cd /tmp/itemMgr/api/DjangoAPI
 export DJANGO_SETTINGS_MODULE=DjangoAPI.settings
 export USE_SQLITE_FOR_TESTS=True
 
+# マイグレーションを実行してテストデータベースを初期化
+python manage.py migrate
+
 # Djangoの標準テストではなく、直接テストを実行する簡易版を作成
 echo "テスト対象コードのテスト中..."
 
@@ -150,6 +153,7 @@ fi
 # テストカバレッジレポートを生成（coverage がインストールされている場合）
 if command -v coverage &> /dev/null; then
   echo "カバレッジレポートを生成中..."
+  python manage.py migrate  # マイグレーションを再度実行
   coverage run --source='ItemApp' manage.py test ItemApp
   coverage report
   coverage html -d /tmp/itemMgr/coverage_html
