@@ -3,6 +3,10 @@
 # テストを実行するスクリプト
 cd /tmp/itemMgr/api/DjangoAPI
 
+# テスト用の環境変数を設定（SQLiteを使用）
+export DJANGO_SETTINGS_MODULE=DjangoAPI.settings
+export USE_SQLITE_FOR_TESTS=True
+
 # テスト実行
 echo "テストを実行中..."
 python manage.py test ItemApp

@@ -126,6 +126,16 @@ DATABASES = {
     },
 }
 
+# テスト用のSQLite設定
+import os
+if os.environ.get('USE_SQLITE_FOR_TESTS') == 'True':
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'test_db.sqlite3',
+        }
+    }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/3.2/ref/settings/#auth-password-validators
@@ -173,9 +183,6 @@ STATIC_URL = '/static/'
 # https://docs.djangoproject.com/en/3.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Custom user model
-AUTH_USER_MODEL = 'ItemApp.User'
 
 # JWT Authentication settings
 REST_FRAMEWORK = {
