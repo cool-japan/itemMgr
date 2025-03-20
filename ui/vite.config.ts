@@ -21,5 +21,11 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true
+  },
+  root: '.',
+  publicDir: 'public',
+  base: './',
+  optimizeDeps: {
+    exclude: ['bootstrap']
   }
 })
