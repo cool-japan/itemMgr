@@ -175,11 +175,8 @@ const login = {
                     return;
                 }
                 
-                const response = await axios.get(variables.API_URL + 'auth/profile/', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                // axiosAuthを使用してリクエスト（トークン更新機能付き）
+                const response = await variables.axiosAuth().get(variables.API_URL + 'auth/profile/');
                 
                 if (response.data && typeof response.data === 'object') {
                     this.userProfile = {
@@ -196,10 +193,12 @@ const login = {
                 this.userProfile = { username: 'ユーザー', email: '' };
                 
                 if (err.response && err.response.status === 401) {
-                    // トークンが無効な場合はログアウト
+                    // トークン更新に失敗した場合はリダイレクト
                     // UIエラーを避けるため、現在のページがログインページでない場合のみログアウト処理を実行
                     if (this.$route.path !== '/login') {
-                        this.logout();
+                        await variables.refreshToken().catch(() => {
+                            this.logout();
+                        });
                     }
                 }
                 throw err; // 呼び出し元でエラー処理ができるようにエラーを再スロー

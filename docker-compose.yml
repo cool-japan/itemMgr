@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   web:
     build: .
@@ -15,6 +13,9 @@ services:
       - POSTGRES_USER=django
       - POSTGRES_PASSWORD=passwd
       - POSTGRES_HOST=db
+      # JWT token settings
+      - JWT_ACCESS_TOKEN_LIFETIME=60
+      - JWT_REFRESH_TOKEN_LIFETIME=1440
   db:
     image: postgres
     restart: always
