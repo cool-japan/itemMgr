@@ -1,4 +1,5 @@
 const routes=[
+    {path:'/',component:home},
     {path:'/home',component:home},
     {path:'/item',component:item},
     {path:'/company',component:company}

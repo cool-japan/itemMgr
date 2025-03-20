@@ -25,17 +25,17 @@ services:
       - POSTGRES_PASSWORD=passwd
       - POSTGRES_DB=ItemMgr
     ports:
-      - "5432:5432"
+      - "5433:5432"
   nginx:
     build:
       context: ./ui/
-      args:
-        APP_SERVER: ${APP_SERVER}
     command: []
     environment:
       - NGINX_PORT=80
     ports:
       - "80:80"
+    depends_on:
+      - web
 volumes:
  postgres_data:
 

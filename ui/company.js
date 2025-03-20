@@ -93,7 +93,6 @@ data-bs-target="#exampleModal"
         </td>
     </tr>
 </tbody>
-</thead>
 </table>
 
 <div class="modal fade" id="exampleModal" tabindex="-1"
@@ -147,10 +146,15 @@ data(){
 },
 methods:{
     refreshData(){
+        console.log("Fetching company data from", variables.API_URL+"company");
         axios.get(variables.API_URL+"company")
         .then((response)=>{
+            console.log("Company data received:", response.data);
             this.companys=response.data;
             this.companysWithoutFilter=response.data;
+        })
+        .catch(error => {
+            console.error("Error fetching company data:", error);
         });
     },
     addClick(){
