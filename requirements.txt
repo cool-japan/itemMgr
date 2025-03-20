@@ -5,3 +5,5 @@ djangorestframework-simplejwt
 psycopg2
 mysqlclient
 django-environ
+dj-database-url
+coverage

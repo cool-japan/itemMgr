@@ -126,9 +126,21 @@ DATABASES = {
     },
 }
 
-# テスト用のSQLite設定
+# データベース設定の優先順位:
+# 1. DATABASE_URL環境変数 (CI環境用)
+# 2. USE_SQLITE_FOR_TESTS環境変数 (テスト用)
+# 3. デフォルト設定 (開発環境用)
+
 import os
-if os.environ.get('USE_SQLITE_FOR_TESTS') == 'True':
+
+# CI環境用の設定
+if os.environ.get('DATABASE_URL'):
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(default=os.environ.get('DATABASE_URL'))
+    }
+# テスト用のSQLite設定
+elif os.environ.get('USE_SQLITE_FOR_TESTS') == 'True':
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
