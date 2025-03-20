@@ -58,5 +58,12 @@ const home = {
     mounted: function() {
         this.refreshData();
         this.checkAuth();
+        
+        // 認証状態変更イベントをリッスン
+        document.addEventListener('auth:statusChanged', this.checkAuth);
+    },
+    beforeDestroy: function() {
+        // コンポーネント破棄時にイベントリスナーを削除
+        document.removeEventListener('auth:statusChanged', this.checkAuth);
     }
 }

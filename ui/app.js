@@ -46,7 +46,24 @@ const app = new Vue({
     data: {
         isAuthenticated: false
     },
+    methods: {
+        checkAuthStatus() {
+            this.isAuthenticated = variables.isAuthenticated();
+            console.log('Root component auth status updated:', this.isAuthenticated);
+        }
+    },
     created() {
-        this.isAuthenticated = variables.isAuthenticated();
+        // 初期認証状態を設定
+        this.checkAuthStatus();
+        
+        // ローカルストレージの変更を監視（他のタブでのログイン/ログアウト用）
+        window.addEventListener('storage', (event) => {
+            if (event.key === 'access_token') {
+                this.checkAuthStatus();
+            }
+        });
+        
+        // カスタムイベントを使って認証状態の変更を監視
+        document.addEventListener('auth:statusChanged', this.checkAuthStatus);
     }
 }).$mount('#app')

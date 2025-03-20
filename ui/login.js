@@ -4,10 +4,15 @@ const login = {
         <div v-if="!isAuthenticated" class="login-container">
             <h3 class="mb-4">ログイン</h3>
             <div class="alert alert-danger" v-if="error">{{ error }}</div>
+            <div class="alert alert-info">
+                デモアカウントを使用してログインできます：<br>
+                ユーザー名: demo<br>
+                パスワード: demo1234
+            </div>
             <form @submit.prevent="loginUser">
                 <div class="mb-3">
-                    <label for="email" class="form-label">メールアドレス</label>
-                    <input type="email" class="form-control" id="email" v-model="loginForm.email" required>
+                    <label for="username" class="form-label">ユーザー名（demo）</label>
+                    <input type="text" class="form-control" id="username" name="username" v-model="loginForm.username" required autocomplete="username">
                 </div>
                 <div class="mb-3">
                     <label for="password" class="form-label">パスワード</label>
@@ -61,8 +66,8 @@ const login = {
         return {
             isAuthenticated: false,
             loginForm: {
-                email: '',
-                password: ''
+                username: 'demo',
+                password: 'demo1234'
             },
             registerForm: {
                 email: '',
@@ -70,7 +75,7 @@ const login = {
                 password: '',
                 password2: ''
             },
-            userProfile: null,
+            userProfile: { username: '', email: '' },
             error: null,
             registerError: null,
             showRegistrationForm: false
@@ -89,22 +94,42 @@ const login = {
         },
         async loginUser() {
             this.error = null;
+            console.log('ログイン試行:', this.loginForm);
             try {
+                // ユーザー名とパスワードを使用
                 const response = await axios.post(variables.API_URL + 'auth/login/', {
-                    email: this.loginForm.email,
+                    username: this.loginForm.username,
                     password: this.loginForm.password
                 });
                 
-                localStorage.setItem('access_token', response.data.access);
-                localStorage.setItem('refresh_token', response.data.refresh);
-                this.isAuthenticated = true;
-                this.fetchUserProfile();
+                console.log('認証成功:', response.data);
                 
-                // ログイン後にホームページにリダイレクト
-                this.$router.push('/home');
+                if (!response.data.access) {
+                    throw new Error('アクセストークンが取得できませんでした');
+                }
+                
+                localStorage.setItem('access_token', response.data.access);
+                if (response.data.refresh) {
+                    localStorage.setItem('refresh_token', response.data.refresh);
+                }
+                
+                this.isAuthenticated = true;
+                
+                // グローバルな認証状態の更新を通知
+                document.dispatchEvent(new CustomEvent('auth:statusChanged'));
+                
+                try {
+                    await this.fetchUserProfile();
+                    // ログイン後にホームページにリダイレクト
+                    this.$router.push('/home');
+                } catch (profileError) {
+                    console.error('プロフィール取得エラー:', profileError);
+                    // プロフィール取得に失敗してもログインは成功しているので、ホームページに移動
+                    this.$router.push('/home');
+                }
             } catch (err) {
+                console.error('認証エラー:', err.response ? err.response.data : err);
                 this.error = '認証に失敗しました。メールアドレスとパスワードを確認してください。';
-                console.error(err);
             }
         },
         async registerUser() {
@@ -145,26 +170,54 @@ const login = {
         async fetchUserProfile() {
             try {
                 const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('トークンが存在しません');
+                    return;
+                }
+                
                 const response = await axios.get(variables.API_URL + 'auth/profile/', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
-                this.userProfile = response.data;
+                
+                if (response.data && typeof response.data === 'object') {
+                    this.userProfile = {
+                        username: response.data.username || 'ユーザー',
+                        email: response.data.email || ''
+                    };
+                } else {
+                    console.error('プロフィールデータが不正な形式です:', response.data);
+                    this.userProfile = { username: 'ユーザー', email: '' };
+                }
             } catch (err) {
                 console.error('Failed to fetch user profile:', err);
+                // デフォルト値を設定
+                this.userProfile = { username: 'ユーザー', email: '' };
+                
                 if (err.response && err.response.status === 401) {
                     // トークンが無効な場合はログアウト
-                    this.logout();
+                    // UIエラーを避けるため、現在のページがログインページでない場合のみログアウト処理を実行
+                    if (this.$route.path !== '/login') {
+                        this.logout();
+                    }
                 }
+                throw err; // 呼び出し元でエラー処理ができるようにエラーを再スロー
             }
         },
         logout() {
             localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
             this.isAuthenticated = false;
-            this.userProfile = null;
-            this.$router.push('/login');
+            this.userProfile = { username: '', email: '' };
+            
+            // グローバルな認証状態の更新を通知
+            document.dispatchEvent(new CustomEvent('auth:statusChanged'));
+            
+            // ナビゲーションの重複を避けるために現在のルートをチェック
+            if (this.$route.path !== '/login') {
+                this.$router.push('/login');
+            }
         }
     }
 }
