@@ -7,6 +7,10 @@ cd /tmp/itemMgr/api/DjangoAPI
 export DJANGO_SETTINGS_MODULE=DjangoAPI.settings
 export USE_SQLITE_FOR_TESTS=True
 
+# マイグレーションの適用
+echo "テスト用データベースのマイグレーションを適用..."
+python manage.py migrate --database=default
+
 # テスト実行
 echo "テストを実行中..."
 python manage.py test ItemApp
